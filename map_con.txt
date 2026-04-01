@@ -1,0 +1,2 @@
+connection: corridorA-tunnelB [    max_link_capacity=2    ]
+connection: tunnelB-goa
