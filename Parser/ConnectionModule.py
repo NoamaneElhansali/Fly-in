@@ -1,5 +1,5 @@
 from pydantic import BaseModel, model_validator, Field
-from typing import Literal
+# from typing import Literal
 import sys
 import re
 
@@ -12,20 +12,27 @@ class ConnectionModule(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def validate_connection_module(cls, data: str):
+        pattern = r'''
+        ^\s*connection\s*:\s*
+        (?P<zone_a>[A-Za-z0-9_]+)
+        \s*-\s*
+        (?P<zone_b>[A-Za-z0-9_]+)
+        (?:\s*\[\s*max_link_capacity\s*=\s*(\d+)\s*\])?
+        \s*$
         '''
-        connection: <name1>-<name2> [max_link_capacity=2]
-        '''
-        data_clean = " ".join(data.split())
-        parts = data_clean.split(":")
-        if parts[0].strip() != "connection":
-            print("ERROR: Invalid connection module format")
-            exit(1)
-        part_valid = parts[1].strip().split()
-        if len(part_valid) > 2:
-            print("ERROR: Too many arguments in connection module")
-            exit(1)
-        print(part_valid)
-        exit()
+        matchs = re.match(pattern, data, re.VERBOSE)
+        if not matchs:
+            raise ValueError("Invalid connection format")
+        max_link_capacity = int(matchs.group(3)) if matchs.group(3) else 1
+        return {
+            "zone_a": matchs.group("zone_a"),
+            "zone_b": matchs.group("zone_b"),
+            "max_link_capacity": max_link_capacity
+        }
+
+    @model_validator(mode="after")
+    def check_connection(self):
+        return self
 
 
 if __name__ == "__main__":
@@ -35,3 +42,4 @@ if __name__ == "__main__":
         strings = f.readlines()
         for string in strings:
             data = ConnectionModule.model_validate(string)
+            print(data)
