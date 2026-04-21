@@ -6,9 +6,9 @@ import re
 
 class HubModule(BaseModel):
     type: Literal["start_hub", "end_hub", "hub"] = Field(default="hub")
-    name: str
-    x: int
-    y: int
+    name: str = Field(..., min_length=1)
+    x: int = Field(..., ge=0)
+    y: int = Field(..., ge=0)
     zone: Literal["normal", "priority", "restricted", "blocked"] = \
         Field(default="normal")
     max_drones: int | None = Field(default=1)
@@ -17,33 +17,36 @@ class HubModule(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def validate_hub_module(cls, data: str):
+        pattern = r'''
+        ^\s*
+        (?P<type>\w+)
+        \s*:\s*
+        (?P<name>[A-Za-z0-9_]+)
+        \s+
+        (?P<x>-?\d+)
+        \s+
+        (?P<y>-?\d+)
+        (?:\s*\[\s*(?P<options>.*?)\s*\])?
+        \s*$
         '''
-            start_hub    : 1222 0 0 [color: 'red']
-        '''
-        data_clean = " ".join(data.split())
-        parts = data_clean.split(":")
-        data_part2 = parts[1].split()
-        if len(data_part2) < 3:
-            print("ERROR: Invalid number of arguments for hub module")
-            exit(1)
-        if "-" in data_part2[0]:
-            print("ERROR: '-' INVALID IN NAME")
-            exit(1)
+        matchs = re.match(pattern, data, re.VERBOSE)
+        if not matchs:
+            raise ValueError(f"Invalid hub format: {data}")
         hub_data = {
-            "type": parts[0].lower().strip(),
-            "name": data_part2[0],
-            "x": data_part2[1],
-            "y": data_part2[2]
+            "type": matchs.group("type").lower(),
+            "name": matchs.group("name"),
+            "x": int(matchs.group("x")),
+            "y": int(matchs.group("y")),
         }
-        if len(data_part2) > 3:
-            options_str = parts[1][
-                parts[1].index("[") + 1: parts[1].index("]")
-                ]
 
-            matches = re.findall(r'(\w+)\s*=\s*([^\s]+)', options_str)
+        metadata = matchs.group("options")
+        if metadata:
+            ops = re.findall(r'(\w+)\s*=\s*([^\s]+)', metadata)
 
-            for key, value in matches:
-                hub_data[key] = value.strip("'\"")
+            for key, val in ops:
+                if key in hub_data:
+                    raise ValueError(f"Duplicate key: {key}")
+                hub_data[key] = val
         return hub_data
 
     @model_validator(mode="after")
@@ -51,6 +54,8 @@ class HubModule(BaseModel):
         if self.type in ("end_hub", "start_hub") and self.zone != "normal":
             raise ValueError("ERROR : end_hub and start_hub must be in normal"
                              "zone")
+        if self.type in ("end_hub", "start_hub") and self.max_drones != 1:
+            raise ValueError("max_drones not in start_hub and end_hub")
         return self
 
 
