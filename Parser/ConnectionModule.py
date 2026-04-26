@@ -2,6 +2,7 @@ from pydantic import BaseModel, model_validator, Field
 # from typing import Literal
 import sys
 import re
+from models.connection import Connection
 
 
 class ConnectionModule(BaseModel):
@@ -32,7 +33,7 @@ class ConnectionModule(BaseModel):
 
     @model_validator(mode="after")
     def check_connection(self):
-        return self
+        return Connection(self.zone_a, self.zone_b, self.max_link_capacity)
 
 
 if __name__ == "__main__":
