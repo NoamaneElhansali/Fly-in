@@ -2,13 +2,14 @@ from pydantic import BaseModel, model_validator, Field
 from typing import Literal
 import sys
 import re
+from models.zone import Zone
 
 
 class HubModule(BaseModel):
     type: Literal["start_hub", "end_hub", "hub"] = Field(default="hub")
     name: str = Field(..., min_length=1)
-    x: int = Field(..., ge=0)
-    y: int = Field(..., ge=0)
+    x: int = Field(...)
+    y: int = Field(...)
     zone: Literal["normal", "priority", "restricted", "blocked"] = \
         Field(default="normal")
     max_drones: int | None = Field(default=1)
@@ -54,9 +55,8 @@ class HubModule(BaseModel):
         if self.type in ("end_hub", "start_hub") and self.zone != "normal":
             raise ValueError("ERROR : end_hub and start_hub must be in normal"
                              "zone")
-        if self.type in ("end_hub", "start_hub") and self.max_drones != 1:
-            raise ValueError("max_drones not in start_hub and end_hub")
-        return self
+        return Zone(self.name, self.x, self.y, self.type, self.max_drones,
+                    self.max_drones)
 
 
 if __name__ == "__main__":
