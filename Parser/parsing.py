@@ -11,7 +11,7 @@ class Parser(BaseModel):
     start_hub: object = Field(...)
     end_hub: object = Field(...)
     hubs: list
-    connections: list 
+    connections: list
 
     @model_validator(mode='before')
     @classmethod
