@@ -16,7 +16,7 @@ costs = {
     "B": 2,
     "C": 1,
     "D": 1,
-    "E" : 2,
+    "E": 2,
     "goal": 1
 }
 
@@ -41,5 +41,6 @@ def dijkstra(graph, costs, start, end):
                 heapq.heappush(heap, (new_cost, neighbor))
 
     return dist, parent
+
 
 print(dijkstra(graph, costs, "start", "goal"))
