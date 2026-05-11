@@ -9,7 +9,7 @@ class PathFinder:
         self.blocked_edges = set()
 
     def get_cost(self, zone):
-        if zone.zone_type == "restricted":
+        if zone.type == "restricted":
             return 2
         return 1
 
@@ -40,12 +40,12 @@ class PathFinder:
         while heap:
             current_cost, node = heapq.heappop(heap)
             if current_cost > dist[node] or \
-               self.graph.zones[node].zone_type == "blocked":
+               self.graph.zones[node].type == "blocked":
                 continue
             if node == end:
                 break
             for neighbor in self.graph.zones[node].neighbors:
-                if self.graph.zones[neighbor.to].zone_type == "blocked" or \
+                if self.graph.zones[neighbor.to].type == "blocked" or \
                    neighbor.to == start:
                     continue
                 if (node, neighbor.to) in self.blocked_edges:
@@ -71,11 +71,25 @@ class PathFinder:
         return self.paths
 
     def format_paths(self):
-        paths_from = {}
+        paths = {}
 
         for path in self.paths:
-            if not path:
-                continue
-            start = path[0]
-            paths_from.setdefault(start, []).append(path)
-        return paths_from
+            if path:
+                paths.setdefault(path[0], []).append(path)
+
+        changed = True
+        while changed:
+            changed = False
+
+            for node, node_paths in list(paths.items()):
+                for path in node_paths[:]:
+                    if len(path) < 2:
+                        continue
+
+                    for suffix in paths.get(path[1], []):
+                        candidate = [node] + suffix
+                        if candidate not in node_paths:
+                            node_paths.append(candidate)
+                            changed = True
+
+        return paths

@@ -55,8 +55,8 @@ class HubModule(BaseModel):
         if self.type in ("end_hub", "start_hub") and self.zone != "normal":
             raise ValueError("ERROR : end_hub and start_hub must be in normal"
                              "zone")
-        return Zone(self.name, self.x, self.y, self.type, self.max_drones,
-                    self.max_drones)
+        return Zone(self.name, self.x, self.y, self.zone, self.type, self.max_drones,
+                    self.color)
 
 
 if __name__ == "__main__":

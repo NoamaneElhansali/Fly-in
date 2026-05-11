@@ -6,7 +6,8 @@ class Zone:
                  name: str,
                  x: int,
                  y: int,
-                 zone_type: str = 'NORMAL',
+                 _type: str = 'normal',
+                 zone_type: str = 'hub',
                  max_drones: int = 1,
                  color: str = None):
         self.name = name
@@ -16,7 +17,7 @@ class Zone:
         self.max_drones = max_drones
         self.color = color
         self.neighbors = []
-
+        self.type = _type
     def add_neighbors(self, neighbor):
         to_zone = neighbor.zone_a if neighbor.zone_b == self.name \
             else neighbor.zone_b
