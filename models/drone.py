@@ -5,3 +5,5 @@ class Drone:
         self.position = None
         self.done = False
         self.path = []
+        self.wait = 0
+        self.target_zone = None

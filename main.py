@@ -21,7 +21,6 @@ if __name__ == "__main__":
         #     "waypoint1", build_graph.end.name)
         # print()
         sim = Simulation(build_graph, path.format_paths())
-        sim.create_drones()
         sim.run()
         # except Exception as e:
         #     print(f"Error: {e}")
