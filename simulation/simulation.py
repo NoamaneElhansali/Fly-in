@@ -9,12 +9,18 @@ class Simulation:
         self.nb_drones = graph.nb_drones
         self.paths = paths
         self.drones = []
+        self.history_turn = []
 
     def create_drones(self):
         self.drones = [
             Drone(i + 1, self.start.name)
             for i in range(self.nb_drones)
         ]
+
+    def count_path_cost(self, path):
+        return sum(
+            2 if self.zones[x].type == "restricted" else 1 for x in path
+        )
 
     def choice_key(self, path):
         if len(path) < 2:
@@ -23,7 +29,7 @@ class Simulation:
         nxt = self.zones[path[1]]
         priority_rank = 0 if nxt.type == "priority" else 1
 
-        return (priority_rank, len(path))
+        return (priority_rank, self.count_path_cost(path))
 
     def current_occupancy(self):
         occupied = {}
@@ -104,6 +110,10 @@ class Simulation:
         while True:
             moves = []
             turn += 1
+            turn_data = {
+                "turn": turn,
+                "moves": []
+            }
 
             occupied = self.current_occupancy()
             self.resolve_transit(occupied, moves)
@@ -147,12 +157,20 @@ class Simulation:
 
                 drone.current_zone = next_zone
                 moves.append(f"D{drone.id}-{next_zone}")
+                turn_data['moves'].append({
+                    'drone': drone.id,
+                    'from': node,
+                    'to': next_zone
+                })
 
                 if next_zone == self.end.name:
                     drone.done = True
 
             if moves:
                 print(" ".join(moves))
+                self.history_turn.append(
+                    turn_data
+                )
 
             active = any(not drone.done for drone in self.drones)
 
@@ -161,4 +179,5 @@ class Simulation:
 
             if not moves and not planned:
                 break
-        print("turn = ", turn)
+        print("<<----[ turns =", turn, " ]---->>")
+        print(self.history_turn)
