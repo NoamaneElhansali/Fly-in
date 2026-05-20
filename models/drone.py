@@ -7,3 +7,4 @@ class Drone:
         self.path = []
         self.wait = 0
         self.target_zone = None
+        self.just_arrived = False

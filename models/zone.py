@@ -18,6 +18,7 @@ class Zone:
         self.color = color
         self.neighbors = []
         self.type = _type
+
     def add_neighbors(self, neighbor):
         to_zone = neighbor.zone_a if neighbor.zone_b == self.name \
             else neighbor.zone_b

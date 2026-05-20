@@ -109,7 +109,6 @@ class Simulation:
 
         while True:
             moves = []
-            turn += 1
             turn_data = {
                 "turn": turn,
                 "moves": []
@@ -150,10 +149,14 @@ class Simulation:
                 drone.path = path
 
                 if zone.type == "restricted":
-                    drone.wait = 1
+                    drone.wait = 2
                     drone.target_zone = next_zone
                     moves.append(f"D{drone.id}-{node}-{next_zone}")
-                    continue
+                    turn_data['moves'].append({
+                        'drone': drone.id,
+                        'from': node,
+                        'to': next_zone
+                    })
 
                 drone.current_zone = next_zone
                 moves.append(f"D{drone.id}-{next_zone}")
@@ -168,6 +171,7 @@ class Simulation:
 
             if moves:
                 print(" ".join(moves))
+                turn += 1
                 self.history_turn.append(
                     turn_data
                 )
@@ -180,4 +184,4 @@ class Simulation:
             if not moves and not planned:
                 break
         print("<<----[ turns =", turn, " ]---->>")
-        print(self.history_turn)
+        return self.history_turn

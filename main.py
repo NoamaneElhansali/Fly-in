@@ -3,6 +3,7 @@ from Parser.parsing import Parser
 from graph.GraphBuilder import GraphBuilder, Graph
 from algorithms.pathfinding import PathFinder
 from simulation.simulation import Simulation
+from visual.display import Display
 
 if __name__ == "__main__":
     if (len(sys.argv) < 2):
@@ -21,7 +22,13 @@ if __name__ == "__main__":
         #     "waypoint1", build_graph.end.name)
         # print()
         sim = Simulation(build_graph, path.format_paths())
-        sim.run()
+        turns = sim.run()
+        # print(turns)
+
+        dis = Display(build_graph.zones, data.connections, turns,
+                      build_graph.nb_drones, build_graph.start,
+                      build_graph.end)
+        dis.test()
         # except Exception as e:
         #     print(f"Error: {e}")
         # for x in graph_b.build().zones.values():
