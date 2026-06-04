@@ -9,9 +9,17 @@ class PathFinder:
         self.blocked_edges = set()
 
     def get_cost(self, zone):
+        cost = 1
+
         if zone.type == "restricted":
-            return 2
-        return 1
+            cost += 5
+
+        if zone.type == "priority":
+            cost -= 1
+
+        cost += max(0, 3 - zone.max_drones)
+
+        return cost
 
     def get_path(self, path_find, start, end):
         path = []

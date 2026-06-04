@@ -13,7 +13,7 @@ class Simulation:
 
     def create_drones(self):
         self.drones = [
-            Drone(i + 1, self.start.name)
+            Drone(i + 1, None)
             for i in range(self.nb_drones)
         ]
 
@@ -23,19 +23,27 @@ class Simulation:
         )
 
     def choice_key(self, path):
-        if len(path) < 2:
-            return (1, len(path))
+        length = len(path)
 
-        nxt = self.zones[path[1]]
-        priority_rank = 0 if nxt.type == "priority" else 1
+        restricted_penalty = sum(
+            1 for x in path if self.zones[x].type == "restricted"
+        )
 
-        return (priority_rank, self.count_path_cost(path))
+        priority_bonus = 0
+        if len(path) >= 2:
+            nxt = self.zones[path[1]]
+            priority_bonus = 1 if nxt.type == "priority" else 0
+
+        return length + restricted_penalty - priority_bonus
 
     def current_occupancy(self):
         occupied = {}
 
         for drone in self.drones:
             if drone.done:
+                continue
+
+            if drone.current_zone is None:
                 continue
 
             if drone.wait > 0:
@@ -53,28 +61,32 @@ class Simulation:
             if drone.done:
                 continue
 
-            if drone.wait == 0:
-                continue
+            if drone.wait > 0:
+                drone.wait -= 1
 
-            drone.wait -= 1
+                if drone.wait == 0:
+                    zone = drone.target_zone
+                    drone.current_zone = zone
+                    drone.target_zone = None
+                    # drone.just_arrived = True
 
-            if drone.wait == 0:
-                zone = drone.target_zone
-                drone.current_zone = zone
-                drone.target_zone = None
+                    if zone != self.end.name:
+                        occupied[zone] = occupied.get(zone, 0) + 1
 
-                if zone != self.end.name:
-                    occupied[zone] = occupied.get(zone, 0) + 1
+                    moves.append(f"D{drone.id}-{zone}")
 
-                moves.append(f"D{drone.id}-{zone}")
-
-                if zone == self.end.name:
-                    drone.done = True
+                    if zone == self.end.name:
+                        drone.done = True
 
     def choose_path(self, node, occupied, edge_used):
         choices = self.paths.get(node, [])
+        sorted_choices = sorted(choices, key=lambda p: len(p))
 
-        for path in sorted(choices, key=self.choice_key):
+        if sorted_choices:
+            min_len = len(sorted_choices[0])
+            sorted_choices = [p for p in sorted_choices if len(p) == min_len]
+
+        for path in sorted_choices:
             if len(path) < 2:
                 continue
 
@@ -95,7 +107,6 @@ class Simulation:
                 continue
 
             edge_key = tuple(sorted((node, nxt)))
-
             if edge_used.get(edge_key, 0) >= neighbor.get_capacity():
                 continue
 
@@ -106,6 +117,7 @@ class Simulation:
     def run(self):
         self.create_drones()
         turn = 0
+        launched = 0
 
         while True:
             moves = []
@@ -118,11 +130,22 @@ class Simulation:
             self.resolve_transit(occupied, moves)
             occupied = self.current_occupancy()
 
+            start_count = sum(
+                1 for d in self.drones
+                if d.current_zone == self.start.name and not d.done
+            )
+            if launched < self.nb_drones and start_count < self.start.max_drones:
+                self.drones[launched].current_zone = self.start.name
+                launched += 1
+
             edge_used = {}
             planned = []
 
             for drone in self.drones:
                 if drone.done or drone.wait > 0:
+                    continue
+
+                if drone.current_zone is None:
                     continue
 
                 node = drone.current_zone
@@ -143,6 +166,8 @@ class Simulation:
 
                 if next_zone != self.end.name:
                     occupied[next_zone] = occupied.get(next_zone, 0) + 1
+                if node not in [self.start.name, self.end.name]:
+                    occupied[node] = max(0, occupied.get(node, 0) - 1)
 
             for drone, node, next_zone, neighbor, path in planned:
                 zone = self.zones[next_zone]
@@ -157,17 +182,17 @@ class Simulation:
                         'from': node,
                         'to': next_zone
                     })
+                else:
+                    drone.current_zone = next_zone
+                    moves.append(f"D{drone.id}-{next_zone}")
+                    turn_data['moves'].append({
+                        'drone': drone.id,
+                        'from': node,
+                        'to': next_zone
+                    })
 
-                drone.current_zone = next_zone
-                moves.append(f"D{drone.id}-{next_zone}")
-                turn_data['moves'].append({
-                    'drone': drone.id,
-                    'from': node,
-                    'to': next_zone
-                })
-
-                if next_zone == self.end.name:
-                    drone.done = True
+                    if next_zone == self.end.name:
+                        drone.done = True
 
             if moves:
                 print(" ".join(moves))
@@ -183,5 +208,6 @@ class Simulation:
 
             if not moves and not planned:
                 break
+
         print("<<----[ turns =", turn, " ]---->>")
         return self.history_turn
