@@ -28,7 +28,7 @@ if __name__ == "__main__":
         dis = Display(build_graph.zones, data.connections, turns,
                       build_graph.nb_drones, build_graph.start,
                       build_graph.end)
-        dis.test()
+        dis.run()
         # except Exception as e:
         #     print(f"Error: {e}")
         # for x in graph_b.build().zones.values():

@@ -17,6 +17,9 @@ class Display:
         self.animations = []
         self.TURN_DURATION = 1.0
         self.drone_positions = self.create_drones_position()
+        self.finished = []
+        self.paused = False
+        pygame.init()
 
     def create_drones_position(self):
         drone_positions = {}
@@ -80,14 +83,186 @@ class Display:
             print("[EXIT]")
             sys.exit()
 
-    def test(self):
-        pygame.init()
+    def draw_connections(self, screen, HEIGHT):
+        for conn in self.connections:
+            a = self.zones[conn.zone_a]
+            b = self.zones[conn.zone_b]
 
+            ax = a.x * 100 + self.cam_x
+            ay = a.y * 100 + HEIGHT / 2 + self.cam_y
+
+            bx = b.x * 100 + self.cam_x
+            by = b.y * 100 + HEIGHT / 2 + self.cam_y
+
+            color = (
+                "red"
+                if b.type == "restricted"
+                else "white"
+            )
+
+            pygame.draw.line(
+                screen,
+                color,
+                (ax, ay),
+                (bx, by),
+                3
+            )
+
+    def draw_zones(self, screen, HEIGHT):
+        for name, zone in self.zones.items():
+            x = zone.x * 100 + self.cam_x
+            y = zone.y * 100 + HEIGHT / 2 + self.cam_y
+
+            color = (0, 120, 255)
+
+            if zone.type == "restricted":
+                color = (255, 80, 80)
+
+            elif zone.type == "priority":
+                color = (80, 255, 80)
+            pygame.draw.circle(
+                screen,
+                zone.color if zone.color else color,
+                (int(x), int(y)),
+                25
+            )
+
+            font = pygame.font.SysFont(None, 24)
+
+            text = font.render(name, True, (255, 255, 255))
+
+            screen.blit(
+                text,
+                (x - 20, y - 40)
+            )
+
+    def draw_drones(self, screen, dlt, HEIGHT, glow, img_drone):
+        self.finished = []
+
+        for anim in self.animations:
+            anim["progress"] += dlt
+
+            p = min(
+                anim["progress"] / self.TURN_DURATION,
+                1
+            )
+
+            p = p * p * (3 - 2 * p)
+
+            x = anim["sx"] + (
+                anim["ex"] - anim["sx"]
+            ) * p
+
+            y = anim["sy"] + (
+                anim["ey"] - anim["sy"]
+            ) * p
+
+            screen_x = x + self.cam_x
+            screen_y = y + HEIGHT / 2 + self.cam_y
+
+            self.drone_positions[anim["drone"]] = {
+                "x": x,
+                "y": y,
+            }
+
+            font = pygame.font.SysFont(None, 22)
+
+            label = font.render(
+                f"D{anim['drone']}",
+                True,
+                (255, 255, 255)
+            )
+
+            screen.blit(
+                label,
+                (screen_x + 10, screen_y - 10)
+            )
+            if p >= 1:
+                self.finished.append(anim)
+                self.drone_positions[anim["drone"]] = {
+                    "x": anim["ex"],
+                    "y": anim["ey"],
+                }
+        for drone_id, pos in self.drone_positions.items():
+
+            screen_x = pos["x"] + self.cam_x
+            screen_y = pos["y"] + HEIGHT / 2 + self.cam_y
+
+            screen.blit(
+                glow,
+                (
+                    screen_x - 40,
+                    screen_y - 40
+                )
+            )
+            screen.blit(
+                img_drone,
+                (
+                    int(screen_x - img_drone.get_width() / 2),
+                    int(screen_y - img_drone.get_width() / 2)
+                )
+            )
+
+            font = pygame.font.SysFont(None, 22)
+
+            label = font.render(
+                f"D{drone_id}",
+                True,
+                (255, 255, 255)
+            )
+
+            screen.blit(
+                label,
+                (screen_x + 10, screen_y - 10)
+            )
+
+    def check_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.paused = not self.paused
+
+                if event.key == pygame.K_r:
+                    self.paused = False
+                    self.current_turn = 0
+                    self.animations.clear()
+
+                    self.drone_positions = self.create_drones_position()
+
+    def load_next_turn(self):
+        if (not self.paused
+                and not self.animations
+                and self.current_turn < len(self.history_turn)):
+            turn_data = self.history_turn[self.current_turn]
+
+            for move in turn_data["moves"]:
+                drone_id = move["drone"]
+
+                start = self.zones[move["from"]]
+                end = self.zones[move["to"]]
+
+                self.animations.append({
+                    "drone": drone_id,
+
+                    "sx": start.x * 100,
+                    "sy": start.y * 100,
+
+                    "ex": end.x * 100,
+                    "ey": end.y * 100,
+
+                    "progress": 0,
+                })
+
+            self.current_turn += 1
+
+    def run(self):
         info = pygame.display.Info()
         WIDTH = info.current_w
         HEIGHT = info.current_h
 
-        paused = False
         background, background_shadow, img_drone, glow = self.load_assets(
             WIDTH, HEIGHT)
         screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -96,105 +271,21 @@ class Display:
         clock = pygame.time.Clock()
 
         while True:
-            dt = clock.tick(80) / 1000
+            dlt = clock.tick(80) / 1000
             self.handle_input()
 
             screen.blit(background, (0, 0))
             screen.blit(background_shadow, (0, 0))
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE:
-                        paused = not paused
+            self.check_events()
+            self.load_next_turn()
 
-                    if event.key == pygame.K_r:
-                        paused = False
-                        self.current_turn = 0
-                        self.animations.clear()
+            self.draw_connections(screen, HEIGHT)
 
-                        self.drone_positions = self.create_drones_position()
+            self.draw_zones(screen, HEIGHT)
 
-            if (not paused
-                    and not self.animations
-                    and self.current_turn < len(self.history_turn)):
-                turn_data = self.history_turn[self.current_turn]
-
-                for move in turn_data["moves"]:
-                    drone_id = move["drone"]
-
-                    start = self.zones[move["from"]]
-                    end = self.zones[move["to"]]
-
-                    self.animations.append({
-                        "drone": drone_id,
-
-                        "sx": start.x * 100,
-                        "sy": start.y * 100,
-
-                        "ex": end.x * 100,
-                        "ey": end.y * 100,
-
-                        "progress": 0,
-                    })
-
-                self.current_turn += 1
-
-            for conn in self.connections:
-                a = self.zones[conn.zone_a]
-                b = self.zones[conn.zone_b]
-
-                ax = a.x * 100 + self.cam_x
-                ay = a.y * 100 + HEIGHT / 2 + self.cam_y
-
-                bx = b.x * 100 + self.cam_x
-                by = b.y * 100 + HEIGHT / 2 + self.cam_y
-
-                color = (
-                    "red"
-                    if b.type == "restricted"
-                    else "white"
-                )
-
-                pygame.draw.line(
-                    screen,
-                    color,
-                    (ax, ay),
-                    (bx, by),
-                    3
-                )
-
-            for name, zone in self.zones.items():
-                x = zone.x * 100 + self.cam_x
-                y = zone.y * 100 + HEIGHT / 2 + self.cam_y
-
-                color = (0, 120, 255)
-
-                if zone.type == "restricted":
-                    color = (255, 80, 80)
-
-                elif zone.type == "priority":
-                    color = (80, 255, 80)
-                pygame.draw.circle(
-                    screen,
-                    zone.color if zone.color else color,
-                    (int(x), int(y)),
-                    25
-                )
-
+            if self.paused:
                 font = pygame.font.SysFont(None, 24)
-
-                text = font.render(name, True, (255, 255, 255))
-
-                screen.blit(
-                    text,
-                    (x - 20, y - 40)
-                )
-
-            finished = []
-            if paused:
                 text = font.render(
                     "PAUSED",
                     True,
@@ -206,84 +297,9 @@ class Display:
                     (WIDTH // 2 - 50, 50)
                 )
 
-            for anim in self.animations:
-                anim["progress"] += dt
+            self.draw_drones(screen, dlt, HEIGHT, glow, img_drone)
 
-                p = min(
-                    anim["progress"] / self.TURN_DURATION,
-                    1
-                )
-
-                p = p * p * (3 - 2 * p)
-
-                x = anim["sx"] + (
-                    anim["ex"] - anim["sx"]
-                ) * p
-
-                y = anim["sy"] + (
-                    anim["ey"] - anim["sy"]
-                ) * p
-
-                screen_x = x + self.cam_x
-                screen_y = y + HEIGHT / 2 + self.cam_y
-
-                self.drone_positions[anim["drone"]] = {
-                    "x": x,
-                    "y": y,
-                }
-
-                font = pygame.font.SysFont(None, 22)
-
-                label = font.render(
-                    f"D{anim['drone']}",
-                    True,
-                    (255, 255, 255)
-                )
-
-                screen.blit(
-                    label,
-                    (screen_x + 10, screen_y - 10)
-                )
-                if p >= 1:
-                    finished.append(anim)
-                    self.drone_positions[anim["drone"]] = {
-                        "x": anim["ex"],
-                        "y": anim["ey"],
-                    }
-            for drone_id, pos in self.drone_positions.items():
-
-                screen_x = pos["x"] + self.cam_x
-                screen_y = pos["y"] + HEIGHT / 2 + self.cam_y
-
-                screen.blit(
-                    glow,
-                    (
-                        screen_x - 40,
-                        screen_y - 40
-                    )
-                )
-                screen.blit(
-                    img_drone,
-                    (
-                        int(screen_x - img_drone.get_width() / 2),
-                        int(screen_y - img_drone.get_width() / 2)
-                    )
-                )
-
-                font = pygame.font.SysFont(None, 22)
-
-                label = font.render(
-                    f"D{drone_id}",
-                    True,
-                    (255, 255, 255)
-                )
-
-                screen.blit(
-                    label,
-                    (screen_x + 10, screen_y - 10)
-                )
-
-            for anim in finished:
+            for anim in self.finished:
                 self.animations.remove(anim)
 
             pygame.display.flip()
