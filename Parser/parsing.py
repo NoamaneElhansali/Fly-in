@@ -43,6 +43,18 @@ class Parser(BaseModel):
                     ConnectionModule.model_validate(line))
         return data
 
+    @model_validator(mode='after')
+    def check_data(self):
+        hub_names = {x.name for x in self.hubs}
+        for conn in self.connections:
+            if (conn.zone_a != self.start_hub.name
+                    and conn.zone_a not in hub_names):
+                raise ValueError(f"hub :{conn.zone_a} is not found !")
+            if (conn.zone_b != self.end_hub.name
+                    and conn.zone_b not in hub_names):
+                raise ValueError(f"hub :{conn.zone_b} is not found !")
+        return self
+
 
 if __name__ == "__main__":
     with open(sys.argv[1]) as f:
