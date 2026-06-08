@@ -22,19 +22,19 @@ class Simulation:
             2 if self.zones[x].type == "restricted" else 1 for x in path
         )
 
-    def choice_key(self, path):
-        length = len(path)
+    # def choice_key(self, path):
+    #     length = len(path)
 
-        restricted_penalty = sum(
-            1 for x in path if self.zones[x].type == "restricted"
-        )
+    #     restricted_penalty = sum(
+    #         1 for x in path if self.zones[x].type == "restricted"
+    #     )
 
-        priority_bonus = 0
-        if len(path) >= 2:
-            nxt = self.zones[path[1]]
-            priority_bonus = 1 if nxt.type == "priority" else 0
+    #     priority_bonus = 0
+    #     if len(path) >= 2:
+    #         nxt = self.zones[path[1]]
+    #         priority_bonus = 1 if nxt.type == "priority" else 0
 
-        return length + restricted_penalty - priority_bonus
+    #     return length + restricted_penalty - priority_bonus
 
     def current_occupancy(self):
         occupied = {}
@@ -68,7 +68,6 @@ class Simulation:
                     zone = drone.target_zone
                     drone.current_zone = zone
                     drone.target_zone = None
-                    # drone.just_arrived = True
 
                     if zone != self.end.name:
                         occupied[zone] = occupied.get(zone, 0) + 1
@@ -128,13 +127,13 @@ class Simulation:
 
             occupied = self.current_occupancy()
             self.resolve_transit(occupied, moves)
-            occupied = self.current_occupancy()
 
             start_count = sum(
                 1 for d in self.drones
                 if d.current_zone == self.start.name and not d.done
             )
-            if launched < self.nb_drones and start_count < self.start.max_drones:
+            if (launched < self.nb_drones
+                    and start_count < self.start.max_drones):
                 self.drones[launched].current_zone = self.start.name
                 launched += 1
 

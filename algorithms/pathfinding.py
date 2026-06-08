@@ -90,7 +90,7 @@ class PathFinder:
             changed = False
 
             for node, node_paths in list(paths.items()):
-                for path in node_paths[:]:
+                for path in node_paths:
                     if len(path) < 2:
                         continue
 
