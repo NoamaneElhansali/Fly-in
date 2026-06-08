@@ -1,13 +1,13 @@
 import sys
 from Parser.parsing import Parser
-from graph.GraphBuilder import GraphBuilder, Graph
+from graph.GraphBuilder import GraphBuilder
 from algorithms.pathfinding import PathFinder
 from simulation.simulation import Simulation
 from visual.display import Display
 
 if __name__ == "__main__":
     if (len(sys.argv) < 2):
-        print("Usage: python main.py <input_file>")
+        print("Usage: python main.py <map_file>")
         sys.exit(1)
     with open(sys.argv[1]) as f:
         # try:
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         dis = Display(build_graph.zones, data.connections, turns,
                       build_graph.nb_drones, build_graph.start,
                       build_graph.end)
-        dis.test()
+        dis.run()
         # except Exception as e:
         #     print(f"Error: {e}")
         # for x in graph_b.build().zones.values():

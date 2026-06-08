@@ -22,7 +22,7 @@ class HubModule(BaseModel):
         ^\s*
         (?P<type>\w+)
         \s*:\s*
-        (?P<name>[A-Za-z0-9_]+)
+        (?P<name>[^\s-]+)
         \s+
         (?P<x>-?\d+)
         \s+
@@ -45,9 +45,9 @@ class HubModule(BaseModel):
             ops = re.findall(r'(\w+)\s*=\s*([^\s]+)', metadata)
 
             for key, val in ops:
-                if key in hub_data:
+                if key.lower() in hub_data:
                     raise ValueError(f"Duplicate key: {key}")
-                hub_data[key] = val
+                hub_data[key.lower()] = val.lower()
         return hub_data
 
     @model_validator(mode="after")
@@ -126,10 +126,10 @@ class HubModule(BaseModel):
             "darkred": (139, 0, 0)
         }
         if self.type in ("end_hub", "start_hub") and self.zone != "normal":
-            raise ValueError("ERROR : end_hub and start_hub must be in normal"
-                             "zone")
+            raise ValueError("ERROR : end_hub and start_hub cannot be blocked."
+                             )
         if self.color not in COLORS:
-            raise ValueError("Invalid color !!")
+            raise ValueError(f"Unknown color '{self.color}' !")
         return Zone(self.name, self.x, self.y, self.zone, self.type,
                     self.max_drones,
                     COLORS[self.color])

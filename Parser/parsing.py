@@ -53,6 +53,51 @@ class Parser(BaseModel):
             if (conn.zone_b != self.end_hub.name
                     and conn.zone_b not in hub_names):
                 raise ValueError(f"hub :{conn.zone_b} is not found !")
+        if self.nb_drones <= 0:
+            raise ValueError(
+                "Number of drones must be greater than zero."
+            )
+        if not self.start_hub:
+            raise ValueError(
+                "Start hub is missing."
+            )
+
+        if not self.end_hub:
+            raise ValueError(
+                "End hub is missing."
+            )
+        hub_names = {hub.name for hub in self.hubs}
+
+        if len(self.hubs) != len(set(hub_names)):
+            raise ValueError(
+                "Duplicate hub names are not allowed."
+            )
+        if self.start_hub.name in hub_names:
+            raise ValueError(
+                f"Hub '{self.start_hub.name}' is already defined as start hub."
+            )
+        if self.end_hub.name in hub_names:
+            raise ValueError(
+                f"Hub '{self.end_hub.name}' is already defined as end hub."
+            )
+        if not self.connections:
+            raise ValueError(
+                "No connections defined."
+            )
+        if not any(
+            self.start_hub.name in [c.zone_a, c.zone_b]
+            for c in self.connections
+        ):
+            raise ValueError(
+                "Start hub is isolated."
+            )
+        if not any(
+            self.end_hub.name in [c.zone_a, c.zone_b]
+            for c in self.connections
+        ):
+            raise ValueError(
+                "End hub is isolated."
+            )
         return self
 
 
