@@ -99,5 +99,8 @@ class PathFinder:
                         if candidate not in node_paths:
                             node_paths.append(candidate)
                             changed = True
-
+        if self.graph.start.name not in paths:
+            raise ValueError(
+                "No route exists between start hub and end hub."
+            )
         return paths

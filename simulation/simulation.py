@@ -22,20 +22,6 @@ class Simulation:
             2 if self.zones[x].type == "restricted" else 1 for x in path
         )
 
-    # def choice_key(self, path):
-    #     length = len(path)
-
-    #     restricted_penalty = sum(
-    #         1 for x in path if self.zones[x].type == "restricted"
-    #     )
-
-    #     priority_bonus = 0
-    #     if len(path) >= 2:
-    #         nxt = self.zones[path[1]]
-    #         priority_bonus = 1 if nxt.type == "priority" else 0
-
-    #     return length + restricted_penalty - priority_bonus
-
     def current_occupancy(self):
         occupied = {}
 
@@ -63,7 +49,13 @@ class Simulation:
 
             if drone.wait > 0:
                 drone.wait -= 1
-
+                if (
+                    drone.wait == 1
+                        and self.zones[drone.current_zone].type == "restricted"
+                        ):
+                    moves.append(
+                        f"D{drone.id}-{drone.current_zone}-{drone.target_zone}"
+                        )
                 if drone.wait == 0:
                     zone = drone.target_zone
                     drone.current_zone = zone
@@ -175,7 +167,6 @@ class Simulation:
                 if zone.type == "restricted":
                     drone.wait = 2
                     drone.target_zone = next_zone
-                    moves.append(f"D{drone.id}-{node}-{next_zone}")
                     turn_data['moves'].append({
                         'drone': drone.id,
                         'from': node,

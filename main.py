@@ -1,13 +1,13 @@
 import sys
 from Parser.parsing import Parser
-from graph.GraphBuilder import GraphBuilder, Graph
+from graph.GraphBuilder import GraphBuilder
 from algorithms.pathfinding import PathFinder
 from simulation.simulation import Simulation
 from visual.display import Display
 
 if __name__ == "__main__":
     if (len(sys.argv) < 2):
-        print("Usage: python main.py <input_file>")
+        print("Usage: python main.py <map_file>")
         sys.exit(1)
     with open(sys.argv[1]) as f:
         # try:

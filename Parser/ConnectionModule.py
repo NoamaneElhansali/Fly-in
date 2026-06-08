@@ -15,9 +15,9 @@ class ConnectionModule(BaseModel):
     def validate_connection_module(cls, data: str):
         pattern = r'''
         ^\s*connection\s*:\s*
-        (?P<zone_a>[A-Za-z0-9_]+)
+        (?P<zone_a>[^\s-]+)
         \s*-\s*
-        (?P<zone_b>[A-Za-z0-9_]+)
+        (?P<zone_b>[^\s-]+)
         (?:\s*\[\s*max_link_capacity\s*=\s*(\d+)\s*\])?
         \s*$
         '''
@@ -33,6 +33,10 @@ class ConnectionModule(BaseModel):
 
     @model_validator(mode="after")
     def check_connection(self):
+        if self.zone_a == self.zone_b:
+            raise ValueError(
+                f"Hub '{self.zone_a}' cannot connect to itself."
+            )
         return Connection(self.zone_a, self.zone_b, self.max_link_capacity)
 
 
